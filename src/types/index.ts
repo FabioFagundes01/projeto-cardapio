@@ -11,8 +11,11 @@ export interface Product {
 
 
 export interface CartItem extends Product {
+  cartId: string; // <--- O "RG" único do item dentro do carrinho
   quantity: number;
-  meat?: string; // Para Shawarma/Beirute (Bovino, Frango, Misto)
-  removedIngredients?: string[]; // Para tirar salada/cebola
+  meat?: string;
+  removedIngredients?: string[];
   observation?: string;
+  extras?: { id: number; name: string; price: number }[];
 }
+

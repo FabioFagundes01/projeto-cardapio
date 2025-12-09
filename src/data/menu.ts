@@ -103,3 +103,17 @@ export const deliveryRegions: DeliveryRegion[] = [
   { id: 5, name: "Jardim Carvalho", price: 6.00 },
   // Adicione mais bairros conforme a necessidade do cliente
 ];
+
+export interface Extra {
+  id: number;
+  name: string;
+  price: number;
+}
+
+export const extraOptions: Extra[] = [
+  { id: 1, name: "Bacon", price: 3.00 },
+  { id: 2, name: "Queijo Cheddar", price: 2.50 },
+  { id: 3, name: "Carne Smash Extra", price: 5.00 },
+  { id: 4, name: "Cebola Caramelizada", price: 2.00 },
+  { id: 5, name: "Molho Extra", price: 1.50 },
+];
