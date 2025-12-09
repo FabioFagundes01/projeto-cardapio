@@ -12,3 +12,12 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+
+/* Esconde a scrollbar mas mantém a funcionalidade */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

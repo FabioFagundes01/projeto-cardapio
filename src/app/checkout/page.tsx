@@ -5,7 +5,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Trash2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { meatOptions } from "@/data/menu";
+import { meatOptions, deliveryRegions, DeliveryRegion } from "@/data/menu";
 
 export default function CheckoutPage() {
   const { items, removeFromCart, cartTotal } = useCartStore();
@@ -14,12 +14,20 @@ export default function CheckoutPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [isDelivery, setIsDelivery] = useState(true);
-  const [address, setAddress] = useState("");
+  
+  // Agora temos um objeto para o bairro selecionado
+  const [selectedRegion, setSelectedRegion] = useState<DeliveryRegion | null>(null);
+  const [addressNumber, setAddressNumber] = useState(""); // Rua e Número
 
-  // SEU NÚMERO DE WHATSAPP AQUI (Com 55 e DDD)
-  const PHONE_NUMBER = "5542999999999"; 
+  const PHONE_NUMBER = "5542998471585"; 
 
-  // Se o carrinho estiver vazio
+  // Calcula o valor final (Produtos + Entrega)
+  const calculateTotal = () => {
+    const subtotal = cartTotal();
+    const deliveryFee = isDelivery && selectedRegion ? selectedRegion.price : 0;
+    return subtotal + deliveryFee;
+  };
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -34,10 +42,15 @@ export default function CheckoutPage() {
     );
   }
 
-  // Lógica para enviar o pedido
   const handleFinishOrder = () => {
-    if (!name || (!address && isDelivery)) {
-      alert("Por favor, preencha seus dados!");
+    // Validação
+    if (!name || !phone) {
+      alert("Por favor, preencha nome e telefone!");
+      return;
+    }
+    
+    if (isDelivery && (!selectedRegion || !addressNumber)) {
+      alert("Para entrega, selecione o bairro e informe o endereço!");
       return;
     }
 
@@ -48,39 +61,41 @@ export default function CheckoutPage() {
     message += `*Telefone:* ${phone}\n`;
     message += `------------------------------\n\n`;
 
+    // Lista os itens
     items.forEach((item) => {
       message += `*${item.quantity}x ${item.name}*\n`;
-      
-      // Detalhes (Carne, etc)
       if (item.meat) {
         const meatLabel = meatOptions.find(m => m.value === item.meat)?.label;
         message += `   Carne: ${meatLabel}\n`;
       }
-      
-      message += `   Preço: ${formatCurrency(item.price * item.quantity)}\n\n`;
+      if (item.observation) {
+        message += `   Obs: ${item.observation}\n`;
+      }
+      message += `   Valor: ${formatCurrency(item.price * item.quantity)}\n\n`;
     });
 
     message += `------------------------------\n`;
-    message += `*Total: ${formatCurrency(cartTotal())}*\n`;
-    message += `------------------------------\n`;
+    message += `Subtotal: ${formatCurrency(cartTotal())}\n`;
     
-    if (isDelivery) {
-      message += `🛵 *Entrega para:*\n${address}`;
+    if (isDelivery && selectedRegion) {
+      message += `🛵 Entrega (${selectedRegion.name}): ${formatCurrency(selectedRegion.price)}\n`;
+      message += `📍 *Endereço:* ${addressNumber} - ${selectedRegion.name}\n`;
     } else {
-      message += `📍 *Vou retirar no balcão*`;
+      message += `📍 *Retirada no Balcão* (Sem taxa)\n`;
     }
 
-    // 2. Codifica para URL e abre o WhatsApp
+    message += `------------------------------\n`;
+    message += `*TOTAL A PAGAR: ${formatCurrency(calculateTotal())}*\n`;
+    message += `------------------------------\n`;
+
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${PHONE_NUMBER}?text=${encodedMessage}`;
-    
     window.open(whatsappUrl, "_blank");
   };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       
-      {/* Topo com botão voltar */}
       <header className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-4">
         <Link href="/" className="p-2 hover:bg-gray-100 rounded-full text-gray-600">
           <ArrowLeft size={20} />
@@ -90,11 +105,12 @@ export default function CheckoutPage() {
 
       <div className="max-w-xl mx-auto p-4 space-y-6">
         
-        {/* 1. Lista de Itens */}
+        {/* Lista de Itens (Resumo) */}
         <section className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-800">Seus Itens</h2>
+            <h2 className="font-bold text-gray-800">Resumo do Pedido</h2>
           </div>
+          {/* ... (Lista de itens igual ao anterior, omiti para poupar espaço) ... */}
           <div className="divide-y divide-gray-100">
             {items.map((item) => (
               <div key={item.id} className="p-4 flex justify-between items-start">
@@ -105,11 +121,6 @@ export default function CheckoutPage() {
                     </span>
                     <span className="font-medium text-gray-900">{item.name}</span>
                   </div>
-                  {item.meat && (
-                    <p className="text-xs text-gray-500 mt-1 ml-8">
-                      Carne: {meatOptions.find(m => m.value === item.meat)?.label}
-                    </p>
-                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium text-gray-900">
@@ -125,25 +136,16 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
-          <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-            <span className="text-gray-600">Total do Pedido</span>
-            <span className="font-bold text-xl text-gray-900">
-              {formatCurrency(cartTotal())}
-            </span>
-          </div>
         </section>
 
-        {/* 2. Dados do Cliente */}
+        {/* Dados do Cliente */}
         <section className="bg-white rounded-xl shadow-sm p-4 space-y-4">
           <h2 className="font-bold text-gray-800">Seus Dados</h2>
           
           <div>
             <label className="block text-sm text-gray-600 mb-1">Nome Completo</label>
             <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Digite seu nome..." 
+              type="text" value={name} onChange={(e) => setName(e.target.value)}
               className="w-full border border-gray-300 rounded-lg p-2 outline-none focus:border-primary"
             />
           </div>
@@ -151,49 +153,92 @@ export default function CheckoutPage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Telefone / WhatsApp</label>
             <input 
-              type="text" 
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(00) 00000-0000" 
+              type="text" value={phone} onChange={(e) => setPhone(e.target.value)}
+              placeholder="(00) 00000-0000"
               className="w-full border border-gray-300 rounded-lg p-2 outline-none focus:border-primary"
             />
           </div>
         </section>
 
-        {/* 3. Tipo de Entrega */}
+        {/* Entrega ou Retirada */}
         <section className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-          <h2 className="font-bold text-gray-800">Entrega ou Retirada?</h2>
+          <h2 className="font-bold text-gray-800">Forma de Entrega</h2>
           
           <div className="flex gap-2">
             <button 
               onClick={() => setIsDelivery(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium border ${isDelivery ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'}`}
+              className={`flex-1 py-3 rounded-lg text-sm font-bold border transition-colors ${isDelivery ? 'bg-primary text-white border-primary' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
             >
               Entrega 🛵
             </button>
             <button 
               onClick={() => setIsDelivery(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium border ${!isDelivery ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'}`}
+              className={`flex-1 py-3 rounded-lg text-sm font-bold border transition-colors ${!isDelivery ? 'bg-primary text-white border-primary' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
             >
               Retirada 🏪
             </button>
           </div>
 
-          {/* Campo de Endereço (Só aparece se for entrega) */}
+          {/* Seletor de Bairro e Endereço */}
           {isDelivery && (
-            <div className="animate-in fade-in slide-in-from-top-2">
-              <label className="block text-sm text-gray-600 mb-1">Endereço Completo</label>
-              <textarea 
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Rua, Número, Bairro e Complemento..." 
-                className="w-full border border-gray-300 rounded-lg p-2 outline-none focus:border-primary h-24 resize-none"
-              />
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+              
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Selecione seu Bairro</label>
+                <select
+                  value={selectedRegion?.id || ""}
+                  onChange={(e) => {
+                    const region = deliveryRegions.find(r => r.id === Number(e.target.value));
+                    setSelectedRegion(region || null);
+                  }}
+                  className="w-full border border-gray-300 rounded-lg p-2 outline-none focus:border-primary bg-white"
+                >
+                  <option value="">Selecione...</option>
+                  {deliveryRegions.map(region => (
+                    <option key={region.id} value={region.id}>
+                      {region.name} - {formatCurrency(region.price)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Rua e Número</label>
+                <input 
+                  type="text"
+                  value={addressNumber}
+                  onChange={(e) => setAddressNumber(e.target.value)}
+                  placeholder="Ex: Rua das Flores, 123"
+                  className="w-full border border-gray-300 rounded-lg p-2 outline-none focus:border-primary"
+                />
+              </div>
+
             </div>
           )}
         </section>
 
-        {/* Botão Final */}
+        {/* Resumo de Valores */}
+        <section className="space-y-2 pt-4 border-t border-gray-200">
+          <div className="flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span>{formatCurrency(cartTotal())}</span>
+          </div>
+          
+          {isDelivery && (
+            <div className="flex justify-between text-gray-600">
+              <span>Taxa de Entrega</span>
+              <span>
+                {selectedRegion ? formatCurrency(selectedRegion.price) : "Selecione o bairro"}
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between text-xl font-bold text-gray-900 pt-2">
+            <span>Total</span>
+            <span>{formatCurrency(calculateTotal())}</span>
+          </div>
+        </section>
+
         <button 
           onClick={handleFinishOrder}
           className="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"

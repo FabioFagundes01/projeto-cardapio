@@ -88,3 +88,18 @@ export const meatOptions = [
   { label: "Frango", value: "frango", price: -2 }, // Exemplo: Frango é mais barato
   { label: "Misto", value: "misto", price: 0 },
 ];
+
+export interface DeliveryRegion {
+  id: number;
+  name: string;
+  price: number;
+}
+
+export const deliveryRegions: DeliveryRegion[] = [
+  { id: 1, name: "Centro", price: 5.00 },
+  { id: 2, name: "Uvaranas", price: 8.00 },
+  { id: 3, name: "Oficinas", price: 7.00 },
+  { id: 4, name: "Nova Rússia", price: 9.00 },
+  { id: 5, name: "Jardim Carvalho", price: 6.00 },
+  // Adicione mais bairros conforme a necessidade do cliente
+];

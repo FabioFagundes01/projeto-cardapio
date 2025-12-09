@@ -1,4 +1,3 @@
-// src/components/products/ProductModal.tsx
 import { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { X, Minus, Plus } from "lucide-react";
@@ -6,6 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useCartStore } from "@/stores/cart-store";
 import { meatOptions } from "@/data/menu";
+import toast from "react-hot-toast";
 
 interface ProductModalProps {
   product: Product | null;
@@ -15,13 +15,13 @@ interface ProductModalProps {
 export const ProductModal = ({ product, onClose }: ProductModalProps) => {
   const { upsertItem } = useCartStore();
   const [quantity, setQuantity] = useState(1);
+  const [observation, setObservation] = useState(""); // <--- NOVO ESTADO
   const [selectedMeat, setSelectedMeat] = useState<string | undefined>(
     product?.Category === 'shawarmas' || product?.Category === 'beirutes' ? 'bovino' : undefined
   );
 
   if (!product) return null;
 
-  // Lógica de Preço (Se escolher Frango, pode ser mais barato, etc)
   const getPrice = () => {
     let finalPrice = product.price;
     if (selectedMeat) {
@@ -36,22 +36,33 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
       ...product,
       quantity,
       meat: selectedMeat,
-      Category: product.Category // Garante que o tipo Category bata
+      observation, // <--- SALVANDO A OBS
+      Category: product.Category
     });
-    onClose(); // Fecha o modal
-    setQuantity(1); // Reseta
+    toast.success(`Adicionado ao carrinho!`, {
+      style: {
+        borderRadius: '10px',
+        background: '#333',
+        color: '#fff',
+      },
+      iconTheme: {
+        primary: '#EA580C', // Laranja do Coombo Street
+        secondary: '#FFFAEE',
+      },
+    });
+    onClose();
+    setQuantity(1);
+    setObservation("");
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      
-      {/* O Card do Modal */}
-      <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
         
-        {/* Foto Grande no Topo */}
+        {/* Imagem do Produto */}
         <div className="relative h-48 w-full bg-gray-200">
           <Image 
-            src={`https://placehold.co/600x400?text=${encodeURIComponent(product.name)}`} 
+            src={product.image} // Já puxando a imagem certa do menu.ts
             alt={product.name} fill className="object-cover" 
           />
           <button onClick={onClose} className="absolute top-3 right-3 bg-black/50 text-white p-2 rounded-full hover:bg-black/70">
@@ -63,7 +74,7 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
           <h2 className="text-xl font-bold text-gray-900">{product.name}</h2>
           <p className="text-gray-500 text-sm mt-2">{product.description}</p>
 
-          {/* Seletor de Carne (Só aparece se for Shawarma/Beirute) */}
+          {/* Seletor de Carne */}
           {(product.Category === 'shawarmas' || product.Category === 'beirutes') && (
             <div className="mt-6">
               <h3 className="font-semibold text-sm mb-3 text-gray-700">Escolha a carne:</h3>
@@ -85,9 +96,20 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
             </div>
           )}
 
-          {/* Controle de Quantidade e Botão Final */}
+          {/* NOVO: Campo de Observação */}
+          <div className="mt-6">
+            <h3 className="font-semibold text-sm mb-2 text-gray-700">Observações:</h3>
+            <textarea 
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:border-primary resize-none bg-gray-50"
+              rows={3}
+              placeholder="Ex: Tirar a cebola, maionese à parte..."
+              value={observation}
+              onChange={(e) => setObservation(e.target.value)}
+            />
+          </div>
+
+          {/* Footer com Quantidade e Botão */}
           <div className="mt-8 flex items-center justify-between gap-4">
-            
             <div className="flex items-center gap-3 border border-gray-200 rounded-lg px-3 py-2">
               <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="text-primary disabled:text-gray-300">
                 <Minus size={20} />
@@ -100,7 +122,7 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
 
             <button 
               onClick={handleAddToCart}
-              className="flex-1 bg-primary text-white font-bold h-12 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-between px-6"
+              className="flex-1 bg-primary text-white font-bold h-12 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-between px-6"
             >
               <span>Adicionar</span>
               <span>{formatCurrency(getPrice())}</span>
