@@ -5,19 +5,22 @@ import Image from "next/image";
 
 interface ProductItemProps {
   product: Product;
-  onSelect: () => void; // <--- Adicionamos essa propriedade nova!
+  onSelect: () => void;
 }
 
 export const ProductItem = ({ product, onSelect }: ProductItemProps) => {
   return (
     <div 
       className="flex gap-4 w-full py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-      onClick={onSelect} // <--- Agora o clique no card inteiro abre o modal
+      onClick={onSelect}
     >
-      {/* Imagem */}
+      {/* Imagem do Produto */}
       <div className="relative w-[100px] h-[100px] flex-shrink-0 bg-gray-200 rounded-lg overflow-hidden">
         <Image 
-          src={`https://placehold.co/400x400?text=${encodeURIComponent(product.name)}`} 
+          // --- AQUI ESTAVA O ERRO ---
+          // Antes estava: src={`https://placehold.co/...`}
+          // Agora fica assim:
+          src={product.image} 
           alt={product.name}
           fill
           className="object-cover"

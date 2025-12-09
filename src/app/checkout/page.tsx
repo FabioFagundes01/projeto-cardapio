@@ -2,6 +2,7 @@
 
 import { useCartStore } from "@/stores/cart-store";
 import { formatCurrency } from "@/lib/utils";
+import { checkIsStoreOpen } from "@/lib/utils";
 import { ArrowLeft, Trash2, ShoppingBag, Minus, Plus } from "lucide-react"; // Importei Minus e Plus
 import Link from "next/link";
 import { useState } from "react";
@@ -10,7 +11,7 @@ import { meatOptions, deliveryRegions, DeliveryRegion } from "@/data/menu";
 export default function CheckoutPage() {
   // Pegando as novas funções da loja
   const { items, removeFromCart, cartTotal, increaseQuantity, decreaseQuantity } = useCartStore();
-  
+  const isOpen = checkIsStoreOpen();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [isDelivery, setIsDelivery] = useState(true);
@@ -203,7 +204,18 @@ export default function CheckoutPage() {
           <div className="flex justify-between text-xl font-bold text-gray-900 pt-2"><span>Total</span><span>{formatCurrency(calculateTotal())}</span></div>
         </section>
 
-        <button onClick={handleFinishOrder} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"><span>Enviar Pedido no WhatsApp</span></button>
+        <button 
+          onClick={handleFinishOrder}
+          disabled={!isOpen} // Desabilita se estiver fechado
+          className={`w-full font-bold py-4 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2
+            ${isOpen 
+              ? 'bg-green-600 text-white hover:bg-green-700' // Estilo Aberto
+              : 'bg-gray-400 text-gray-200 cursor-not-allowed' // Estilo Fechado
+            }
+          `}
+        >
+          {isOpen ? 'Enviar Pedido no WhatsApp' : 'Loja Fechada no Momento'}
+        </button>
 
       </div>
     </div>
